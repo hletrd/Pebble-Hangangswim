@@ -72,11 +72,12 @@ var conversion = {"가평": "Gapyeong",
 									"청미천": "Cheongmicheon",
 									"복하천": "Bokhacheon",
 									"안동댐하류": "Andongdaemharyu",
-									"남강": "Namgang"}
+									"남강": "Namgang"};
 
 var width = 144;
+var watchinfo;
 if(Pebble.getActiveWatchInfo) {
-	watchinfo= Pebble.getActiveWatchInfo();
+	watchinfo = Pebble.getActiveWatchInfo();
 	if (watchinfo.platform == 'chalk') width = 180;
 } else {
 	width = 144;
@@ -154,23 +155,45 @@ window.add(textTemp);
 window.add(textTime);
 window.show();
 
+var tmpMode = 0;
+var tmp = 0;
+
+var refresh = function() {
+	switch (tmpMode) {
+		case 0:
+			textTemp.text((0|tmp*100)/100 + '°C');
+			break;
+		case 1:
+			textTemp.text((0|(tmp + 273.15)*100)/100 + 'K');
+			break;
+		case 2:
+			textTemp.text((0|(tmp * 1.8 + 32)*100)/100 + '°F');
+			break;
+	}
+};
+
 function locationSuccess(pos) {
 	var Lat = pos.coords.latitude, Long = pos.coords.longitude;
 	var request = new XMLHttpRequest();
 	request.onload = function() {
-		json = JSON.parse(this.responseText);
-		textLocation.text(conversion[json.name]);
-		textTemp.text(json.temp + '°C');
-		var dateRef = new Date(json.time);
-		minute = dateRef.getMinutes();
-		if (minute < 10) minute = '0' + minute;
-		textTime.text('Updated: ' + dateRef.getFullYear() + '-' + (dateRef.getMonth()+1) + '-' + dateRef.getDate() + ' ' + dateRef.getHours() + ':' + minute);
+		try {
+			var json = JSON.parse(this.responseText);
+			textLocation.text(conversion[json.name]);
+			tmp = json.temp;
+			refresh();
+			var dateRef = new Date(json.time);
+			var minute = dateRef.getMinutes();
+			if (minute < 10) minute = '0' + minute;
+			textTime.text('Updated: ' + dateRef.getFullYear() + '-' + (dateRef.getMonth()+1) + '-' + dateRef.getDate() + ' ' + dateRef.getHours() + ':' + minute);
+		} catch (e) {
+			textLocation.text('Error fetching data');
+		}
 	};
 	request.open('GET', 'https://0101010101.com/api/temperature/?lat=' + Lat + '&lng=' + Long, true);
 	request.send();
 }   
 function locationError(err) {
-	textStatus.text('Error getting location');
+	textLocation.text('Error getting location');
 }
 
 var locationOptions = {
@@ -180,3 +203,17 @@ var locationOptions = {
 };
 
 navigator.geolocation.getCurrentPosition(locationSuccess, locationError, locationOptions);
+
+window.on('click', 'up', function() {
+	tmpMode = (tmpMode + 2) % 3;
+	refresh();
+});
+
+window.on('click', 'down', function() {
+	tmpMode = (tmpMode + 1) % 3;
+	refresh();
+});
+
+window.on('click', 'select', function() {
+	navigator.geolocation.getCurrentPosition(locationSuccess, locationError, locationOptions);
+});
