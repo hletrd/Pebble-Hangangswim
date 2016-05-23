@@ -84,18 +84,18 @@ if(Pebble.getActiveWatchInfo) {
 } 
 
 var textTitle = new UI.Text({
-	position: new Vector2(0, 0),
-	size: new Vector2(width, 35),
+	position: new Vector2(0, -4),
+	size: new Vector2(width, 29),
 	text : 'HangangSwim',  
-	font: 'Gothic 28 Bold',
+	font: 'Gothic 24 Bold',
 	color: 'Black',
 	textAlign: 'center',
 	backgroundColor: 'White'
 });
 
 var textTime = new UI.Text({
-	position: new Vector2(0, 35),
-	size: new Vector2(width, 20),
+	position: new Vector2(0, 25),
+	size: new Vector2(width, 18),
 	text : '',  
 	font: 'Gothic 14',
 	color: 'Dark Candy Apple Red',
@@ -103,28 +103,28 @@ var textTime = new UI.Text({
 	backgroundColor: 'White'
 });
 
-var textLabel1 = new UI.Text({
-	position: new Vector2(0, 55),
-	size: new Vector2(width, 20),
-	text : 'Closest point',  
+var textStock = new UI.Text({
+	position: new Vector2(0, 43),
+	size: new Vector2(width, 32),
+	text : 'Fetching data',  
 	font: 'Gothic 14 Bold',
 	color: 'White',
 	textAlign: 'center',
-	backgroundColor: 'Electric Ultramarine'
+	backgroundColor: 'Jazzberry Jam'
 });
 
 var textLocation = new UI.Text({
 	position: new Vector2(0, 75),
-	size: new Vector2(width, 19),
+	size: new Vector2(width, 20),
 	text : 'Fetching data',  
 	font: 'Gothic 14 Bold',
-	color: 'Cobalt Blue',
+	color: 'White',
 	textAlign: 'center',
-	backgroundColor: 'White'
+	backgroundColor: 'Midnight Green'
 });
 
 var textLabel2 = new UI.Text({
-	position: new Vector2(0, 94),
+	position: new Vector2(0, 95),
 	size: new Vector2(width, 20),
 	text : 'Water temperature',  
 	font: 'Gothic 14 Bold',
@@ -134,7 +134,7 @@ var textLabel2 = new UI.Text({
 });
 
 var textTemp = new UI.Text({
-	position: new Vector2(0, 114),
+	position: new Vector2(0, 115),
 	size: new Vector2(width, 70),
 	text : 'Fetching data',  
 	font: 'Gothic 24 Bold',
@@ -148,7 +148,7 @@ var window = new UI.Window({
 });
 
 window.add(textTitle);
-window.add(textLabel1);
+window.add(textStock);
 window.add(textLocation);
 window.add(textLabel2);
 window.add(textTemp);
@@ -178,10 +178,11 @@ function locationSuccess(pos) {
 	request.onload = function() {
 		try {
 			var json = JSON.parse(this.responseText);
-			textLocation.text(conversion[json.name]);
+			textLocation.text('Closest point: ' + conversion[json.name]);
 			tmp = json.temp;
 			refresh();
-			var dateRef = new Date(json.time);
+			var t = json.time.split(/[- :]/);
+			var dateRef = new Date(t[0], t[1]-1, t[2], t[3], t[4], t[5]);
 			var minute = dateRef.getMinutes();
 			if (minute < 10) minute = '0' + minute;
 			textTime.text('Updated: ' + dateRef.getFullYear() + '-' + (dateRef.getMonth()+1) + '-' + dateRef.getDate() + ' ' + dateRef.getHours() + ':' + minute);
@@ -191,6 +192,18 @@ function locationSuccess(pos) {
 	};
 	request.open('GET', 'https://0101010101.com/api/temperature/?lat=' + Lat + '&lng=' + Long, true);
 	request.send();
+	
+	var requestStock = new XMLHttpRequest();
+	requestStock.onload = function() {
+		try {
+			var json = JSON.parse(this.responseText);
+			textStock.text('KOSPI ' + json.kospi.price + ' (' + json.kospi.change.replace('▼', '-').replace('▲', '+') + ')\nKOSDAQ ' + json.kosdaq.price + ' (' + json.kosdaq.change.replace('▼', '-').replace('▲', '+') + ')');
+		} catch (e) {
+			textStock.text('Error fetching data');
+		}
+	};
+	requestStock.open('GET', 'https://0101010101.com/api/temperature/stock.php', true);
+	requestStock.send();
 }   
 function locationError(err) {
 	textLocation.text('Error getting location');
