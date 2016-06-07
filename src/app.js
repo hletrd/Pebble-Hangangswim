@@ -175,7 +175,7 @@ var refresh = function() {
 	}
 	textLocation.text(tmpMode>2?('Closest point: ' + conversion[json.name]):('가장 가까운 지점: ' + json.name));
 	textLabel2.text(tmpMode>2?'Water temperature':'현재 수온');
-	textTime.text(tmpMode>2?'Updated: ' + time_formatted:'최종 업데이트: ' + time_formatted);
+	textTime.text(tmpMode>2?'Updated: ' + time_formatted:time_formatted + ' 기준');
 };
 
 function locationSuccess(pos) {
