@@ -57,7 +57,7 @@ var conversion = {"가평": "Gapyeong",
 									"포천": "Pocheon",
 									"풍양": "Pung-yang",
 									"칠곡": "Chilgok",
-									"상동": "Sangsong",
+									"상동": "Sangdong",
 									"신암": "Sinam",
 									"도개": "Dogae",
 									"회상": "Hoesang",
@@ -71,7 +71,7 @@ var conversion = {"가평": "Gapyeong",
 									"달천": "Dalcheon",
 									"청미천": "Cheongmicheon",
 									"복하천": "Bokhacheon",
-									"안동댐하류": "Andongdaemharyu",
+									"안동댐하류": "Andongdam downstream",
 									"남강": "Namgang"};
 
 var width = 144;
@@ -126,7 +126,7 @@ var textLocation = new UI.Text({
 var textLabel2 = new UI.Text({
 	position: new Vector2(0, 95),
 	size: new Vector2(width, 20),
-	text : 'Water temperature',  
+	text : '현재 수온',  
 	font: 'Gothic 14 Bold',
 	color: 'White',
 	textAlign: 'center',
@@ -158,8 +158,11 @@ window.show();
 var tmpMode = 0;
 var tmp = 0;
 
+var json, jsonstock;
+var time_formatted;
+
 var refresh = function() {
-	switch (tmpMode) {
+	switch (tmpMode % 3) {
 		case 0:
 			textTemp.text((0|tmp*100)/100 + '°C');
 			break;
@@ -170,6 +173,9 @@ var refresh = function() {
 			textTemp.text((0|(tmp * 1.8 + 32)*100)/100 + '°F');
 			break;
 	}
+	textLocation.text(tmpMode>2?('Closest point: ' + conversion[json.name]):('가장 가까운 지점: ' + json.name));
+	textLabel2.text(tmpMode>2?'Water temperature':'현재 수온');
+	textTime.text(tmpMode>2?'Updated: ' + time_formatted:'최종 업데이트: ' + time_formatted);
 };
 
 function locationSuccess(pos) {
@@ -177,15 +183,16 @@ function locationSuccess(pos) {
 	var request = new XMLHttpRequest();
 	request.onload = function() {
 		try {
-			var json = JSON.parse(this.responseText);
-			textLocation.text('Closest point: ' + conversion[json.name]);
+			json = JSON.parse(this.responseText);
+			textLocation.text('Closest point: ' + (tmpMode>2?conversion[json.name]:json.name));
 			tmp = json.temp;
 			refresh();
 			var t = json.time.split(/[- :]/);
 			var dateRef = new Date(t[0], t[1]-1, t[2], t[3], t[4], t[5]);
 			var minute = dateRef.getMinutes();
 			if (minute < 10) minute = '0' + minute;
-			textTime.text('Updated: ' + dateRef.getFullYear() + '-' + (dateRef.getMonth()+1) + '-' + dateRef.getDate() + ' ' + dateRef.getHours() + ':' + minute);
+			time_formatted = dateRef.getFullYear() + '-' + (dateRef.getMonth()+1) + '-' + dateRef.getDate() + ' ' + dateRef.getHours() + ':' + minute;
+			textTime.text(tmpMode>2?'Updated: ':'최종 업데이트: ' + time_formatted);
 		} catch (e) {
 			textLocation.text('Error fetching data');
 		}
@@ -196,8 +203,8 @@ function locationSuccess(pos) {
 	var requestStock = new XMLHttpRequest();
 	requestStock.onload = function() {
 		try {
-			var json = JSON.parse(this.responseText);
-			textStock.text('KOSPI ' + json.kospi.price + ' (' + json.kospi.change.replace('▼', '-').replace('▲', '+') + ')\nKOSDAQ ' + json.kosdaq.price + ' (' + json.kosdaq.change.replace('▼', '-').replace('▲', '+') + ')');
+			jsonstock = JSON.parse(this.responseText);
+			textStock.text('KOSPI ' + jsonstock.kospi.price + ' (' + jsonstock.kospi.change.replace('▼', '-').replace('▲', '+') + ')\nKOSDAQ ' + jsonstock.kosdaq.price + ' (' + jsonstock.kosdaq.change.replace('▼', '-').replace('▲', '+') + ')');
 		} catch (e) {
 			textStock.text('Error fetching data');
 		}
@@ -218,15 +225,19 @@ var locationOptions = {
 navigator.geolocation.getCurrentPosition(locationSuccess, locationError, locationOptions);
 
 window.on('click', 'up', function() {
-	tmpMode = (tmpMode + 2) % 3;
+	tmpMode = (tmpMode + 5) % 6;
 	refresh();
 });
 
 window.on('click', 'down', function() {
-	tmpMode = (tmpMode + 1) % 3;
+	tmpMode = (tmpMode + 1) % 6;
 	refresh();
 });
 
 window.on('click', 'select', function() {
+	textTime.text(tmpMode>2?'Refreshing...':'받아오는 중...');
+	textStock.text(tmpMode>2?'Refreshing...':'받아오는 중...');
+	textLocation.text(tmpMode>2?'Refreshing...':'받아오는 중...');
+	textTemp.text(tmpMode>2?'Refreshing...':'받아오는 중...');
 	navigator.geolocation.getCurrentPosition(locationSuccess, locationError, locationOptions);
 });
